@@ -121,3 +121,15 @@ func updateUser(w http.ResponseWriter, r *http.Request) {
 	user.CreatedAt = "now" // Placeholder
 	json.NewEncoder(w).Encode(user)
 }
+
+func deleteUser(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	id := params["id"]
+
+	_, err := db.Exec("DELETE FROM users WHERE id = ?", id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

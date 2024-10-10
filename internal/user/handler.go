@@ -2,6 +2,7 @@ package user
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -26,15 +27,23 @@ func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(user)
 }
-
-// GetUsersHandler handles fetching all users
 func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
+	// Логирование начала запроса
+	log.Println("Fetching users from the database")
+
 	users, err := GetUsers()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("Error fetching users: %v", err) // Логируем ошибку
+		http.Error(w, "Error fetching users", http.StatusInternalServerError)
 		return
 	}
-	json.NewEncoder(w).Encode(users)
+
+	// Возвращаем список пользователей в формате JSON
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(users)
+	if err != nil {
+		log.Printf("Error encoding response: %v", err) // Логируем ошибку
+	}
 }
 
 // GetUserHandler handles fetching a user by ID

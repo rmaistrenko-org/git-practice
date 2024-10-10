@@ -9,21 +9,21 @@ import (
 )
 
 func main() {
-	// Initialize configuration
+	// Загрузка конфигурации
 	cfg := config.LoadConfig()
 
-	// Establish connection to the database
-	database.ConnectToDB(cfg) // Ensure this is called to initialize the database
+	// Инициализация подключения к базе данных
+	database.ConnectToDB(cfg)
 
-	// Check if the database connection is properly initialized
+	// Проверяем подключение к базе данных
 	if database.DB == nil {
-		log.Fatal("Database connection failed")
+		log.Fatal("Database is not initialized")
 	}
 
-	// Initialize the router for API endpoints
+	// Настройка маршрутизатора
 	r := router.SetupRouter()
 
-	// Start the server
+	// Запуск сервера
 	log.Printf("Starting server on port %s...", cfg.ServerPort)
 	log.Fatal(http.ListenAndServe(cfg.ServerPort, r))
 }

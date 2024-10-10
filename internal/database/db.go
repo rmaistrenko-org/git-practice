@@ -13,20 +13,17 @@ var DB *sql.DB
 
 // ConnectToDB establishes a connection to the MySQL database
 func ConnectToDB(cfg *config.Config) {
-	// Build Data Source Name (DSN) for the database connection
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName)
 
 	var err error
-	// Open the database connection
-	DB, err = sql.Open("mysql", dsn) // Ensure that DB is correctly initialized
+	DB, err = sql.Open("mysql", dsn)
 	if err != nil {
-		log.Fatalf("Error connecting to the database: %s", err.Error())
+		log.Fatalf("Error connecting to the database: %s", err.Error()) // Лог ошибки подключения
 	}
 
-	// Verify the connection with Ping
 	err = DB.Ping()
 	if err != nil {
-		log.Fatalf("Database ping failed: %s", err.Error())
+		log.Fatalf("Database ping failed: %s", err.Error()) // Лог ошибки ping
 	}
 
 	log.Println("Connected to the database successfully")

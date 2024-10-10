@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"github.com/go-sql-driver/mysql"
 	"log"
 	"net/http"
@@ -36,4 +37,30 @@ func main() {
 
 	// Start server on port 8000
 	log.Fatal(http.ListenAndServe(":8000", router))
+}
+
+func createUser(w http.ResponseWriter, r *http.Request) {
+	var user User
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	result, err := db.Exec("INSERT INTO users (name, email) VALUES (?, ?)", user.Name, user.Email)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNetworkAuthenticationRequired)
+		//http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotExtended)
+
+		//http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	user.ID = int(id)
+	user.CreatedAt = "now" // Placeholder
+	json.NewEncoder(w).Encode(user)
 }

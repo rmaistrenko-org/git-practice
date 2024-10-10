@@ -1,38 +1,58 @@
-/project_root
-│
-├── /cmd
-│   └── /api
-│       └── main.go            # Головний файл для запуску API сервера
-│
-├── /config
-│   └── config.go              # Файл для конфігурацій (налаштування бази даних, порт сервера тощо)
-│
-├── /internal
-│   ├── /database
-│   │   ├── db.go              # Логіка підключення до бази даних
-│   │   └── migrations.sql     # Скрипти для створення таблиць та початкові дані
-│   │
-│   ├── /user
-│   │   ├── handler.go         # Логіка обробки HTTP-запитів, пов'язаних з користувачами (CRUD-операції)
-│   │   ├── repository.go      # Логіка роботи з базою даних (CRUD для користувачів)
-│   │   └── model.go           # Структура моделі даних користувача (User)
-│   │
-│   └── /middleware
-│       └── auth.go            # Функції проміжного шару (наприклад, аутентифікація)
-│
-├── /pkg
-│   ├── /router
-│   │   └── router.go          # Налаштування роутів за допомогою Gorilla Mux
-│   │
-│   └── /utils
-│       └── utils.go           # Допоміжні функції (наприклад, перевірка валідності електронної пошти)
-│
-├── /tests
-│   └── /integration
-│       ├── user_test.go       # Тестування API для користувачів
-│       └── db_test.go         # Тестування підключення до бази даних
-│
-├── .env                        # Файл із конфігураціями середовища (наприклад, паролі до БД)
-├── .gitignore                  # Файл для виключення непотрібних файлів з репозиторію
-├── go.mod                      # Файл залежностей Go
-└── README.md                   # Опис проекту та інструкції для запуску
+# User Management API in Go
+
+## Project Overview
+
+This project implements a simple RESTful API for user management, including creating, retrieving, updating, and deleting user records in a MySQL database.
+
+### Features:
+- CRUD operations for user management.
+- Configurable database connection.
+- Integration tests for API routes.
+- Structured project layout for maintainability.
+
+## Getting Started
+
+### Prerequisites:
+- Go (version 1.16 or newer)
+- MySQL
+- Git
+
+### Installation:
+
+1. Clone the repository:
+    ```
+    git clone https://github.com/your-repo/go-crud-api
+    cd go-crud-api
+    ```
+
+2. Install Go dependencies:
+    ```
+    go mod tidy
+    ```
+
+3. Set up the environment variables by copying `.env.example` to `.env` and modifying the values:
+    ```
+    cp .env.example .env
+    ```
+
+4. Start the MySQL server and create a database:
+    ```
+    CREATE DATABASE go_crud_api;
+    ```
+
+5. Run the application:
+    ```
+    go run cmd/api/main.go
+    ```
+
+## API Endpoints:
+
+- `POST /user` - Create a new user.
+- `GET /users` - Retrieve all users.
+- `GET /user/{id}` - Retrieve a user by ID.
+- `PUT /user/{id}` - Update a user by ID.
+- `DELETE /user/{id}` - Delete a user by ID.
+
+## Running Tests:
+
+To run the integration tests, use the following command:

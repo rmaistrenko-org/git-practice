@@ -5,7 +5,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// SetupRouter инициализирует маршрутизатор Gorilla Mux
 func SetupRouter(handler *user.Handler) *mux.Router {
 	router := mux.NewRouter()
 

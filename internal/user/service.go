@@ -2,22 +2,18 @@ package user
 
 import "database/sql"
 
-// Service предоставляет бизнес-логику для работы с пользователями
 type Service struct {
 	DB *sql.DB
 }
 
-// NewService создает новый экземпляр Service
 func NewService(db *sql.DB) *Service {
 	return &Service{DB: db}
 }
 
-// ProvideUserService предоставляет новый экземпляр Service
 func ProvideUserService(db *sql.DB) *Service {
 	return NewService(db)
 }
 
-// Реализация методов Service
 func (s *Service) CreateUser(user *User) error {
 	return CreateUser(user)
 }

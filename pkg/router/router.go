@@ -5,16 +5,15 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// SetupRouter initializes the Gorilla Mux router and defines routes
-func SetupRouter() *mux.Router {
+// SetupRouter инициализирует маршрутизатор Gorilla Mux
+func SetupRouter(handler *user.Handler) *mux.Router {
 	router := mux.NewRouter()
 
-	// Define API routes
-	router.HandleFunc("/user", user.CreateUserHandler).Methods("POST")
-	router.HandleFunc("/users", user.GetUsersHandler).Methods("GET")
-	router.HandleFunc("/user/{id}", user.GetUserHandler).Methods("GET")
-	router.HandleFunc("/user/{id}", user.UpdateUserHandler).Methods("PUT")
-	router.HandleFunc("/user/{id}", user.DeleteUserHandler).Methods("DELETE")
+	router.HandleFunc("/user", handler.CreateUserHandler).Methods("POST")
+	router.HandleFunc("/users", handler.GetUsersHandler).Methods("GET")
+	router.HandleFunc("/user/{id}", handler.GetUserHandler).Methods("GET")
+	router.HandleFunc("/user/{id}", handler.UpdateUserHandler).Methods("PUT")
+	router.HandleFunc("/user/{id}", handler.DeleteUserHandler).Methods("DELETE")
 
 	return router
 }

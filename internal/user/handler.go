@@ -9,6 +9,15 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type Handler struct {
+	Service *Service
+}
+
+// NewHandler створює новий екземпляр Handler
+func NewHandler(service *Service) *Handler {
+	return &Handler{Service: service}
+}
+
 // CreateUserHandler handles the creation of a new user
 func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 	var user User
@@ -27,6 +36,7 @@ func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(user)
 }
+
 func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 	// Логирование начала запроса
 	log.Println("Fetching users from the database")

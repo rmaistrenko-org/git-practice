@@ -11,6 +11,11 @@ import (
 
 var DB *sql.DB
 
+func ProvideDatabase(cfg *config.Config) *sql.DB {
+	ConnectToDB(cfg)
+	return DB
+}
+
 // ConnectToDB establishes a connection to the MySQL database
 func ConnectToDB(cfg *config.Config) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", cfg.DBUser, cfg.DBPassword, cfg.DBHost, cfg.DBPort, cfg.DBName)

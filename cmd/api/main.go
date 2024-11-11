@@ -1,29 +1,20 @@
 package main
 
 import (
-	"example.com/m/config"
-	"example.com/m/internal/database"
+	"example.com/m/internal/user"
 	"example.com/m/pkg/router"
 	"log"
 	"net/http"
 )
 
 func main() {
-	// Загрузка конфигурации
-	cfg := config.LoadConfig()
-
-	// Инициализация подключения к базе данных
-	database.ConnectToDB(cfg)
-
-	// Проверяем подключение к базе данных
-	if database.DB == nil {
-		log.Fatal("Database is not initialized")
-	}
+	// Инициализация зависимостей через Wire
+	handler := user.InitializeUserHandler()
 
 	// Настройка маршрутизатора
-	r := router.SetupRouter()
+	r := router.SetupRouter(handler)
 
 	// Запуск сервера
-	log.Printf("Starting server on port %s...", cfg.ServerPort)
-	log.Fatal(http.ListenAndServe(cfg.ServerPort, r))
+	log.Println("Server running on port 8000")
+	log.Fatal(http.ListenAndServe(":8000", r))
 }

@@ -2,24 +2,36 @@ package user
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
 )
 
-// CreateUserHandler handles the creation of a new user
-func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
+// Handler отвечает за обработку HTTP-запросов
+type Handler struct {
+	Service *Service
+}
+
+// NewHandler создает новый экземпляр Handler
+func NewHandler(service *Service) *Handler {
+	return &Handler{Service: service}
+}
+
+// ProvideUserHandler предоставляет новый экземпляр Handler
+func ProvideUserHandler(service *Service) *Handler {
+	return NewHandler(service)
+}
+
+// CreateUserHandler обрабатывает создание нового пользователя
+func (h *Handler) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 	var user User
-	err := json.NewDecoder(r.Body).Decode(&user)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	err = CreateUser(&user)
-	if err != nil {
+	if err := h.Service.CreateUser(&user); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -27,27 +39,21 @@ func CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(user)
 }
-func GetUsersHandler(w http.ResponseWriter, r *http.Request) {
-	// Логирование начала запроса
-	log.Println("Fetching users from the database")
 
-	users, err := GetUsers()
+// GetUsersHandler возвращает список пользователей
+func (h *Handler) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
+	users, err := h.Service.GetUsers()
 	if err != nil {
-		log.Printf("Error fetching users: %v", err) // Логируем ошибку
-		http.Error(w, "Error fetching users", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Возвращаем список пользователей в формате JSON
 	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(users)
-	if err != nil {
-		log.Printf("Error encoding response: %v", err) // Логируем ошибку
-	}
+	json.NewEncoder(w).Encode(users)
 }
 
-// GetUserHandler handles fetching a user by ID
-func GetUserHandler(w http.ResponseWriter, r *http.Request) {
+// GetUserHandler возвращает пользователя по ID
+func (h *Handler) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
 	if err != nil {
@@ -55,7 +61,7 @@ func GetUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := GetUserByID(id)
+	user, err := h.Service.GetUserByID(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -64,11 +70,12 @@ func GetUserHandler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+
 	json.NewEncoder(w).Encode(user)
 }
 
-// UpdateUserHandler handles updating a user by ID
-func UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
+// UpdateUserHandler обновляет данные пользователя
+func (h *Handler) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
 	if err != nil {
@@ -77,14 +84,12 @@ func UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var user User
-	err = json.NewDecoder(r.Body).Decode(&user)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	err = UpdateUser(id, &user)
-	if err != nil {
+	if err := h.Service.UpdateUser(id, &user); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -92,8 +97,8 @@ func UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
-// DeleteUserHandler handles deleting a user by ID
-func DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
+// DeleteUserHandler удаляет пользователя
+func (h *Handler) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id, err := strconv.Atoi(params["id"])
 	if err != nil {
@@ -101,8 +106,7 @@ func DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = DeleteUser(id)
-	if err != nil {
+	if err := h.Service.DeleteUser(id); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

@@ -13,6 +13,10 @@ type Config struct {
 	ServerPort string
 }
 
+func ProvideConfig() *Config {
+	return LoadConfig()
+}
+
 // LoadConfig loads environment variables or defaults for database and server configuration
 func LoadConfig() *Config {
 	config := &Config{

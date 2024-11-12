@@ -17,114 +17,100 @@ import (
 	"time"
 )
 
-// TestMain will run before any other tests to set up the environment
+var testHandler *user.Handler
+
+// TestMain initializes the test environment
 func TestMain(m *testing.M) {
 	cfg := config.LoadConfig()
 
+	// Connect to the database
 	database.ConnectToDB(cfg)
 
 	if database.DB == nil {
 		log.Fatal("Database is not initialized")
 	}
 
-	code := m.Run()
+	// Provide service and handler for tests
+	service := user.ProvideUserService(database.DB)
+	testHandler = user.ProvideUserHandler(service)
 
+	code := m.Run()
 	os.Exit(code)
 }
 
-// TestCreateUser tests the POST /user endpoint to create a new user
+// Helper function to create a unique email
+func generateUniqueEmail() string {
+	return "test" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.com"
+}
+
+// Helper function to decode response body into a struct
+func decodeResponseBody(t *testing.T, body []byte, target interface{}) {
+	err := json.NewDecoder(bytes.NewReader(body)).Decode(target)
+	if err != nil {
+		t.Fatalf("Failed to decode response body: %v", err)
+	}
+}
+
+// TestCreateUser tests creating a user
 func TestCreateUser(t *testing.T) {
-	r := router.SetupRouter()
+	r := router.SetupRouter(testHandler)
 
-	// Generate a unique email to avoid duplicates
-	uniqueEmail := "test" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.com"
-
-	// Create a new user with a unique email
+	uniqueEmail := generateUniqueEmail()
 	newUser := &user.User{Name: "Test User", Email: uniqueEmail}
 	jsonUser, _ := json.Marshal(newUser)
 
-	// Create a POST request with the new user data
 	req, _ := http.NewRequest("POST", "/user", bytes.NewBuffer(jsonUser))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	// Log the response body for debugging
 	responseBody, _ := io.ReadAll(w.Body)
-	log.Printf("POST Response body: %s", responseBody)
-
-	// Check if the status code is 201 Created
-	if status := w.Code; status != http.StatusCreated {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusCreated)
+	if w.Code != http.StatusCreated {
+		t.Errorf("Expected status code 201. Got %d", w.Code)
 	}
 
-	// Decode the response body to check if the user was created correctly
 	var createdUser user.User
-	err := json.NewDecoder(bytes.NewReader(responseBody)).Decode(&createdUser)
-	if err != nil {
-		t.Errorf("Error decoding response body: %v", err)
-	}
+	decodeResponseBody(t, responseBody, &createdUser)
 
-	// Ensure the returned user has the correct name and email
 	if createdUser.Name != newUser.Name {
-		t.Errorf("Expected Name to be '%v'. Got '%v'", newUser.Name, createdUser.Name)
+		t.Errorf("Expected Name '%v'. Got '%v'", newUser.Name, createdUser.Name)
 	}
-
-	if createdUser.Email != newUser.Email {
-		t.Errorf("Expected Email to be '%v'. Got '%v'", uniqueEmail, createdUser.Email)
+	if createdUser.Email != uniqueEmail {
+		t.Errorf("Expected Email '%v'. Got '%v'", uniqueEmail, createdUser.Email)
 	}
-
-	// Check that the ID and CreatedAt fields are not zero/empty
 	if createdUser.ID == 0 {
-		t.Errorf("Expected user ID to be set. Got '%v'", createdUser.ID)
+		t.Error("Expected a valid ID")
 	}
-
 	if createdUser.CreatedAt == "" {
-		t.Errorf("Expected CreatedAt to be set. Got '%v'", createdUser.CreatedAt)
-	}
-
-	// Check that user was added to the database
-	retrievedUser, err := user.GetUserByID(createdUser.ID)
-	if err != nil || retrievedUser == nil {
-		t.Errorf("User was not found in the database after creation")
+		t.Error("Expected a valid CreatedAt timestamp")
 	}
 }
 
-// TestGetUsers tests the GET /users endpoint to fetch all users
+// TestGetUsers tests fetching all users
 func TestGetUsers(t *testing.T) {
-	r := router.SetupRouter()
+	r := router.SetupRouter(testHandler)
 
-	// Create a GET request to fetch all users
 	req, _ := http.NewRequest("GET", "/users", nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	// Check if the status code is 200 OK
-	if status := w.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status code 200. Got %d", w.Code)
 	}
 
-	// Decode the response body to check if it returns users
 	var users []user.User
-	err := json.NewDecoder(w.Body).Decode(&users)
-	if err != nil {
-		t.Errorf("Error decoding response body: %v", err)
-	}
+	decodeResponseBody(t, w.Body.Bytes(), &users)
 
-	// Optionally check that users list is not empty (if there should be some users)
 	if len(users) == 0 {
-		t.Errorf("Expected users list to not be empty") // Убрано %v
+		t.Error("Expected at least one user in the response")
 	}
 }
 
-// TestGetUserByID tests the GET /user/{id} endpoint to retrieve a user by ID
+// TestGetUserByID tests fetching a user by ID
 func TestGetUserByID(t *testing.T) {
-	r := router.SetupRouter()
+	r := router.SetupRouter(testHandler)
 
-	// Generate a unique email to avoid duplicates
-	uniqueEmail := "test" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.com"
-
-	// First, create a new user with a unique email
+	uniqueEmail := generateUniqueEmail()
 	newUser := &user.User{Name: "Test User", Email: uniqueEmail}
 	jsonUser, _ := json.Marshal(newUser)
 
@@ -133,61 +119,30 @@ func TestGetUserByID(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	// Log the status code and body of the POST response
-	if w.Code != http.StatusCreated {
-		t.Errorf("Expected status code 201. Got %d", w.Code)
-	}
-	responseBody, _ := io.ReadAll(w.Body)
-	log.Printf("POST Response body: %s", responseBody)
-
-	// Decode the created user
 	var createdUser user.User
-	err := json.NewDecoder(bytes.NewReader(responseBody)).Decode(&createdUser)
-	if err != nil {
-		t.Errorf("Error decoding response body after user creation: %v", err)
-	}
+	decodeResponseBody(t, w.Body.Bytes(), &createdUser)
 
-	// Log the created user's details for debugging
-	log.Printf("Created user: ID=%d, Name=%s, Email=%s", createdUser.ID, createdUser.Name, createdUser.Email)
-
-	// Then, retrieve the user by ID
 	req, _ = http.NewRequest("GET", "/user/"+strconv.Itoa(createdUser.ID), nil)
 	w = httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	// Check if the status code is 200 OK
-	if status := w.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status code 200. Got %d", w.Code)
 	}
 
-	// Log the GET response body
-	responseBody, _ = io.ReadAll(w.Body)
-	log.Printf("GET Response body: %s", responseBody)
-
-	// Decode the response to ensure the correct user was returned
 	var retrievedUser user.User
-	err = json.NewDecoder(bytes.NewReader(responseBody)).Decode(&retrievedUser)
-	if err != nil {
-		t.Errorf("Error decoding response body: %v", err)
-	}
+	decodeResponseBody(t, w.Body.Bytes(), &retrievedUser)
 
-	// Check if the retrieved user's ID matches the created user's ID
 	if retrievedUser.ID != createdUser.ID {
-		t.Errorf("Expected ID to be '%v'. Got '%v'", createdUser.ID, retrievedUser.ID)
+		t.Errorf("Expected ID '%v'. Got '%v'", createdUser.ID, retrievedUser.ID)
 	}
-
-	// Log the retrieved user's details for debugging
-	log.Printf("Retrieved user: ID=%d, Name=%s, Email=%s", retrievedUser.ID, retrievedUser.Name, retrievedUser.Email)
 }
 
-// TestUpdateUser tests the PUT /user/{id} endpoint to update a user's details
+// TestUpdateUser tests updating user details
 func TestUpdateUser(t *testing.T) {
-	r := router.SetupRouter()
+	r := router.SetupRouter(testHandler)
 
-	// Generate a unique email to avoid duplicates
-	uniqueEmail := "test" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.com"
-
-	// First, create a new user with a unique email
+	uniqueEmail := generateUniqueEmail()
 	newUser := &user.User{Name: "Test User", Email: uniqueEmail}
 	jsonUser, _ := json.Marshal(newUser)
 
@@ -196,22 +151,10 @@ func TestUpdateUser(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	// Log the POST response body
-	responseBody, _ := io.ReadAll(w.Body)
-	log.Printf("POST Response body: %s", responseBody)
-
-	// Decode the created user
 	var createdUser user.User
-	err := json.NewDecoder(bytes.NewReader(responseBody)).Decode(&createdUser)
-	if err != nil {
-		t.Errorf("Error decoding response body after user creation: %v", err)
-	}
+	decodeResponseBody(t, w.Body.Bytes(), &createdUser)
 
-	// Log the created user's details
-	log.Printf("Created user: ID=%d, Name=%s, Email=%s", createdUser.ID, createdUser.Name, createdUser.Email)
-
-	// Update the user with new data
-	updatedUser := &user.User{Name: "Updated User", Email: "updated" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.com"}
+	updatedUser := &user.User{Name: "Updated User", Email: "updated" + uniqueEmail}
 	jsonUpdatedUser, _ := json.Marshal(updatedUser)
 
 	req, _ = http.NewRequest("PUT", "/user/"+strconv.Itoa(createdUser.ID), bytes.NewBuffer(jsonUpdatedUser))
@@ -219,43 +162,26 @@ func TestUpdateUser(t *testing.T) {
 	w = httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	// Log the PUT response body
-	responseBody, _ = io.ReadAll(w.Body)
-	log.Printf("PUT Response body: %s", responseBody)
-
-	// Check if the status code is 200 OK
-	if status := w.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status code 200. Got %d", w.Code)
 	}
 
-	// Decode the response to ensure the user was updated correctly
 	var resultUser user.User
-	err = json.NewDecoder(bytes.NewReader(responseBody)).Decode(&resultUser)
-	if err != nil {
-		t.Errorf("Error decoding response body: %v", err)
-	}
+	decodeResponseBody(t, w.Body.Bytes(), &resultUser)
 
-	// Ensure the updated fields are correct
 	if resultUser.Name != updatedUser.Name {
-		t.Errorf("Expected Name to be '%v'. Got '%v'", updatedUser.Name, resultUser.Name)
+		t.Errorf("Expected Name '%v'. Got '%v'", updatedUser.Name, resultUser.Name)
 	}
-
 	if resultUser.Email != updatedUser.Email {
-		t.Errorf("Expected Email to be '%v'. Got '%v'", updatedUser.Email, resultUser.Email)
+		t.Errorf("Expected Email '%v'. Got '%v'", updatedUser.Email, resultUser.Email)
 	}
-
-	// Log the updated user's details
-	log.Printf("Updated user: ID=%d, Name=%s, Email=%s", resultUser.ID, resultUser.Name, resultUser.Email)
 }
 
-// TestDeleteUser tests the DELETE /user/{id} endpoint to delete a user by ID
+// TestDeleteUser tests deleting a user by ID
 func TestDeleteUser(t *testing.T) {
-	r := router.SetupRouter()
+	r := router.SetupRouter(testHandler)
 
-	// Generate a unique email to avoid duplicates
-	uniqueEmail := "test" + strconv.FormatInt(time.Now().UnixNano(), 10) + "@example.com"
-
-	// First, create a new user with a unique email
+	uniqueEmail := generateUniqueEmail()
 	newUser := &user.User{Name: "Test User", Email: uniqueEmail}
 	jsonUser, _ := json.Marshal(newUser)
 
@@ -264,45 +190,22 @@ func TestDeleteUser(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	// Log the POST response body
-	responseBody, _ := io.ReadAll(w.Body)
-	log.Printf("POST Response body: %s", responseBody)
-
-	// Decode the created user
 	var createdUser user.User
-	err := json.NewDecoder(bytes.NewReader(responseBody)).Decode(&createdUser)
-	if err != nil {
-		t.Errorf("Error decoding response body after user creation: %v", err)
-	}
+	decodeResponseBody(t, w.Body.Bytes(), &createdUser)
 
-	// Log the created user's details
-	log.Printf("Created user: ID=%d, Name=%s, Email=%s", createdUser.ID, createdUser.Name, createdUser.Email)
-
-	// Then, delete the user by ID
 	req, _ = http.NewRequest("DELETE", "/user/"+strconv.Itoa(createdUser.ID), nil)
 	w = httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	// Log the DELETE response body
-	responseBody, _ = io.ReadAll(w.Body)
-	log.Printf("DELETE Response body: %s", responseBody)
-
-	// Check if the status code is 204 No Content
-	if status := w.Code; status != http.StatusNoContent {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
+	if w.Code != http.StatusNoContent {
+		t.Errorf("Expected status code 204. Got %d", w.Code)
 	}
 
-	// Try to retrieve the deleted user
 	req, _ = http.NewRequest("GET", "/user/"+strconv.Itoa(createdUser.ID), nil)
 	w = httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	// Log the GET response body for the deleted user
-	responseBody, _ = io.ReadAll(w.Body)
-	log.Printf("GET Response body: %s", responseBody)
-
-	// Ensure the user no longer exists (404 Not Found)
-	if status := w.Code; status != http.StatusNotFound {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusNotFound)
+	if w.Code != http.StatusNotFound {
+		t.Errorf("Expected status code 404. Got %d", w.Code)
 	}
 }

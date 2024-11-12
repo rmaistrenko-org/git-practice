@@ -25,6 +25,7 @@ jobs:
 
       # Install dependencies
       - name: Install dependencies
+        working-directory: ./cmd/api
         run: go mod tidy
 
       # Run integration tests

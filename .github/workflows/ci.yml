@@ -59,6 +59,12 @@ jobs:
           done
 
       # Run integration tests
-      - name: Run integration tests
+      - name: Run tests
         working-directory: ./tests/integration
+        env:
+          DB_USER: root
+          DB_PASSWORD: 1111
+          DB_NAME: go_crud_api
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
         run: go test ./... -v

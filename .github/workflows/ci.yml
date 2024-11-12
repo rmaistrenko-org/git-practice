@@ -58,6 +58,9 @@ jobs:
             sleep 3
           done
 
+      - name: Run database migrations
+        run: go run ./migrations/main.go
+
       # Run integration tests
       - name: Run tests
         working-directory: ./tests/integration

@@ -48,6 +48,14 @@ jobs:
       - name: Install dependencies
         run: go mod tidy
 
+      # Install migrate tool
+      - name: Install migrate
+        run: |
+          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.15.2/migrate.linux-amd64.tar.gz -o migrate.tar.gz
+          tar -xvf migrate.tar.gz
+          chmod +x migrate
+          sudo mv migrate /usr/local/bin/
+
       - name: Wait for MySQL to be ready
         run: |
           for i in {1..10}; do
@@ -58,8 +66,9 @@ jobs:
             sleep 3
           done
 
-      - name: Run database migrations
-        run: go run ./migrations/main.go
+      # Run migrations
+      - name: Run migrations
+        run: migrate -path ./migrations -database "mysql://root:1111@tcp(127.0.0.1:3306)/go_crud_api" up
 
       # Run integration tests
       - name: Run tests

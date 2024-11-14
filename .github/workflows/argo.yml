@@ -39,7 +39,7 @@ jobs:
       # Update Helm chart with new image tag
       - name: Update Helm Chart with new image tag
         run: |
-          sed -i 's|image: ruslanmaistrenko/my_image:.*|image: ruslanmaistrenko/my_image:${{ github.sha }}|' ./charts/go-crud/values.yaml
+          sed -i 's|image: ruslanmaistrenko/my_image:.*|image: ruslanmaistrenko/my_image:latest|' ./charts/go-crud/values.yaml
           git add ./charts/go-crud/values.yaml
           git commit -m "Update Helm chart with new image version"
           git push

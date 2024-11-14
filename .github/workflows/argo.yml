@@ -1,4 +1,4 @@
-name: CI/CD for Go CRUD Application
+name: ARGO
 
 on:
   push:
@@ -27,6 +27,7 @@ jobs:
           docker build -t ruslanmaistrenko/my_image:latest .
           docker push ruslanmaistrenko/my_image:latest
 
+
   update-helm-chart:
     needs: docker-build-push
     runs-on: ubuntu-latest
@@ -39,8 +40,8 @@ jobs:
       # Update Helm chart with new image tag
       - name: Update Helm Chart with new image tag
         run: |
-          sed -i 's|image: ruslanmaistrenko/my_image:.*|image: ruslanmaistrenko/my_image:latest|' ./charts/go-crud/values.yaml
-          git add ./charts/go-crud/values.yaml
+          sed -i 's|image: ruslanmaistrenko/my_image:.*|image: ruslanmaistrenko/my_image:latest|' ./values.yaml
+          git add ./values.yaml
           git commit -m "Update Helm chart with new image version"
           git push
 

@@ -15,6 +15,7 @@ func main() {
 	r := router.SetupRouter(handler)
 
 	// Запуск сервера
+	log.Println("Remove me")
 	log.Println("Server running on port 8000")
 	log.Fatal(http.ListenAndServe(":8000", r))
 }

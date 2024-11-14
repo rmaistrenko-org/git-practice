@@ -1,0 +1,51 @@
+version: "3.9"
+
+services:
+  db:
+    image: mysql:8
+    container_name: mysql_db
+    environment:
+      MYSQL_ROOT_PASSWORD: 1111
+      MYSQL_DATABASE: go_crud_api
+    volumes:
+      - mydbdata:/var/lib/mysql
+      - ./migrations:/docker-entrypoint-initdb.d
+    ports:
+      - "3306:3306"
+    networks:
+      - mynetwork
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+
+  app:
+    build:
+      context: .
+    container_name: go_crud_app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      - DB_USER=root
+      - DB_PASSWORD=1111
+      - DB_NAME=go_crud_api
+      - DB_HOST=db
+      - DB_PORT=3306
+      - SERVER_PORT=8000
+    networks:
+      - mynetwork
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.2"
+
+networks:
+  mynetwork:
+    driver: bridge
+
+volumes:
+  mydbdata:

@@ -1,51 +1,46 @@
-name: CI Pipeline
+name: CI for Go CRUD
 
 on:
   push:
     branches:
-      - main  # Запуск пайплайну при кожному пуші в main
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # Крок 1: Checkout репозиторію
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v2
 
-      # Крок 2: Логін в Docker
-      - name: Login to DockerHub
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to DockerHub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Крок 3: Побудова Docker образу
       - name: Build Docker image
         run: |
-          docker build -t your-docker-repo/your-image:${{ github.sha }} .
-          docker tag your-docker-repo/your-image:${{ github.sha }} your-docker-repo/your-image:latest
+          docker build -t ruslanmaistrenko/my_image:latest .
 
-      # Крок 4: Push Docker образу в реєстр
       - name: Push Docker image to DockerHub
         run: |
-          docker push your-docker-repo/your-image:${{ github.sha }}
-          docker push your-docker-repo/your-image:latest
+          docker push ruslanmaistrenko/my_image:latest
+          docker push ruslanmaistrenko/my_image:${{ github.sha }}
 
-      # Крок 5: Оновлення Helm чарту
-      - name: Update Helm chart with new image
+      - name: Set up Helm
+        uses: azure/setup-helm@v1
+
+      - name: Update Helm chart with new Docker image tag
         run: |
-          sed -i "s|image: your-docker-repo/your-image:.*|image: your-docker-repo/your-image:${{ github.sha }}|" ./charts/your-helm-chart/values.yaml
-          git add ./charts/your-helm-chart/values.yaml
-          git commit -m "Update Docker image version"
-          git push origin main
+          helm repo add my-helm-repo https://my-repo-url
+          helm repo update
+          helm upgrade --install go-crud my-helm-repo/go-crud --set image.tag=latest
 
-      # Крок 6: Оновлення Helm чарту в репозиторії
-      - name: Push Helm chart changes
-        uses: helm/chart-releaser-action@v1
-        with:
-          charts-dir: ./charts
-          release-name: your-chart-release
-          chart-version: ${{ github.sha }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}  # Для доступу до репозиторію
+      - name: Sync ArgoCD application
+        run: |
+          argocd app sync go-crud --auth-token ${{ secrets.ARGOCD_TOKEN }}
+

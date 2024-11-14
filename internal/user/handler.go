@@ -52,6 +52,18 @@ func (h *Handler) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(users)
 }
 
+// NewFunc
+func (h *Handler) NewFunc(w http.ResponseWriter, r *http.Request) {
+	users, err := h.Service.GetUsers()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(users)
+}
+
 // GetUserHandler возвращает пользователя по ID
 func (h *Handler) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)

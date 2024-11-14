@@ -21,12 +21,15 @@ jobs:
           username: ruslanmaistrenko
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Build and push the Docker image
+      # Build and push the Docker image with a version tag
       - name: Build and push Docker image
         run: |
-          docker build -t ruslanmaistrenko/my_image:latest .
+          # Get the current Git commit SHA for versioning
+          VERSION=$(git rev-parse --short HEAD)
+          docker build -t ruslanmaistrenko/my_image:$VERSION .
+          docker push ruslanmaistrenko/my_image:$VERSION
+          docker tag ruslanmaistrenko/my_image:$VERSION ruslanmaistrenko/my_image:latest
           docker push ruslanmaistrenko/my_image:latest
-
 
   update-helm-chart:
     needs: docker-build-push
@@ -42,12 +45,13 @@ jobs:
           git config --global user.email "rmaistrenko.job+lead@gmail.com"
           git config --global user.name "rmaistrenko-lead"
 
-      # Update Helm chart with new image tag
+      # Update Helm chart with the new image tag
       - name: Update Helm Chart with new image tag
         run: |
-          sed -i 's|image: ruslanmaistrenko/my_image:.*|image: ruslanmaistrenko/my_image:latest|' ./values.yaml
+          VERSION=$(git rev-parse --short HEAD)
+          sed -i "s|image: ruslanmaistrenko/my_image:.*|image: ruslanmaistrenko/my_image:$VERSION|" ./values.yaml
           git add ./values.yaml
-          git commit -m "Update Helm chart with new image version"
+          git commit -m "Update Helm chart with new image version $VERSION"
           git push
 
   sync-argocd:

@@ -13,6 +13,10 @@ jobs:
       # Крок 1: Checkout репозиторію
       - name: Checkout repository
         uses: actions/checkout@v2
+      - name: Show secrets for debugging (NOT recommended for production)
+        run: |
+          echo "DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}"
+          echo "DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}"
 
       # Крок 2: Логін в Docker
       - name: Login to DockerHub

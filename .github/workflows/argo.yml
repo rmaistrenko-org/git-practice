@@ -26,6 +26,10 @@ jobs:
           username: ruslanmaistrenko
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Clean up Docker cache
+        run: |
+          docker system prune -af
+
       # Build and push the Docker image with a version tag
       - name: Build and push Docker image
         run: |

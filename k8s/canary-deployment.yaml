@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app-canary
+  labels:
+    app: my-app
+    version: canary
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-app
+      version: canary
+  template:
+    metadata:
+      labels:
+        app: my-app
+        version: canary
+    spec:
+      containers:
+        - name: my-app
+          image: ruslanmaistrenko/my_image:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DB_HOST
+              value: "db-dev.cbogu2a2g7xb.eu-central-1.rds.amazonaws.com"
+            - name: DB_USER
+              value: "root"
+            - name: DB_PASSWORD
+              value: "1111"
+            - name: DB_NAME
+              value: "go_crud_api"

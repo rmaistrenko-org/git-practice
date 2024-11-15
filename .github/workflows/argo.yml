@@ -31,6 +31,7 @@ jobs:
         run: |
           # Get the current Git commit SHA for versioning
           VERSION=$(git rev-parse --short HEAD)
+          echo "Using version: $VERSION"
           docker build -t ruslanmaistrenko/my_image:$VERSION .
           docker push ruslanmaistrenko/my_image:$VERSION
           docker tag ruslanmaistrenko/my_image:$VERSION ruslanmaistrenko/my_image:latest
@@ -45,19 +46,36 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
+      # Fetch the latest changes
+      - name: Fetch latest changes
+        run: |
+          git fetch --prune --unshallow
+
+      # Check git status
+      - name: Check git status
+        run: |
+          git status
+
       - name: Configure Git user
         run: |
           git config --global user.email "rmaistrenko.job+lead@gmail.com"
           git config --global user.name "rmaistrenko-lead"
 
-      # Update Helm chart with the new image tag
+      # Check if values.yaml has changes
+      - name: Check if values.yaml is modified
+        run: |
+          git diff --exit-code ./values.yaml || echo "values.yaml has changes"
+
+      # Update Helm chart with the new image tag if changes exist
       - name: Update Helm Chart with new image tag
         run: |
           VERSION=$(git rev-parse --short HEAD)
+          echo "Updating Helm chart with version: $VERSION"
           sed -i "s|image: ruslanmaistrenko/my_image:.*|image: ruslanmaistrenko/my_image:$VERSION|" ./values.yaml
           git add ./values.yaml
           git commit -m "Update Helm chart with new image version $VERSION"
           git push
+        if: ${{ steps.Check_if_values_yaml_is_modified.outputs.modified == 'true' }}
 
   sync-argocd:
     needs: update-helm-chart

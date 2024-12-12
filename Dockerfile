@@ -1,34 +1,26 @@
-# Базовий образ для збірки
-FROM golang:1.23 AS builder
+# Базовий образ
+FROM golang:1.23
 
 # Робоча директорія
 WORKDIR /app
 
-# Кешуємо залежності для швидшої збірки при повторних змінах
-COPY go.mod go.sum ./
-RUN go mod download
-
-# Копіюємо решту файлів проекту
+# Копіювання файлів проекту
 COPY . .
+
+# Копіювання скрипта wait-for-it
+COPY wait-for-it.sh /usr/local/bin/wait-for-it
+
+# Дозвіл на виконання скрипта
+RUN chmod +x /usr/local/bin/wait-for-it
+
+# Завантаження залежностей
+RUN go mod tidy
 
 # Збірка додатка
 RUN go build -o main ./cmd/api/main.go
 
-# Базовий образ для запуску
-FROM alpine:latest
-
-# Встановлюємо необхідні інструменти
-RUN apk --no-cache add ca-certificates bash
-
-# Копіюємо зібраний додаток з першого образу
-COPY --from=builder /app/main /main
-
-# Копіюємо скрипт wait-for-it
-COPY wait-for-it.sh /usr/local/bin/wait-for-it
-RUN chmod +x /usr/local/bin/wait-for-it
-
-# Відкриваємо порт
+# Відкриття порту
 EXPOSE 8000
 
-# Запуск додатка з очікуванням бази даних
-CMD ["wait-for-it", "db:3306", "--timeout=30", "--", "/main"]
+# Очікуємо готовність бази даних і запускаємо додаток
+CMD ["/usr/local/bin/wait-for-it", "db:3306", "--timeout=30", "--", "./main"]

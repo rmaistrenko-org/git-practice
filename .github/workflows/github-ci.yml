@@ -83,26 +83,31 @@ jobs:
 
   # Stage 3: Deploy to Kubernetes
   deploy:
-    needs: [build, test]
+    needs: [ build, test ]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
 
       - name: Set up Kubectl
         uses: azure/setup-kubectl@v3
         with:
           version: 'latest'
 
-      - name: Set up Kubeconfig
+      - name: Configure Kubeconfig
         run: |
-          echo "${{ secrets.KUBECONFIG }}" > ./terraform/dev/kubeconfig.yaml
-          export KUBECONFIG=./terraform/dev/kubeconfig.yaml
-          kubectl config view
-          kubectl get nodes
+          aws eks update-kubeconfig --region eu-central-1 --name k8s-dev
 
       - name: Deploy Canary to Kubernetes
         run: |
           kubectl apply -f k8s/canary-deployment.yaml
           kubectl rollout status deployment my-app-canary
           echo "Canary Deployment successful!"
+  

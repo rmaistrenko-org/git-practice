@@ -24,7 +24,9 @@ spec:
             - containerPort: 8000
           env:
             - name: DB_HOST
-              value: "db-dev.cbogu2a2g7xb.eu-central-1.rds.amazonaws.com"
+              value: "db"
+            - name: DB_PORT
+              value: "3306"  # Додайте порт
             - name: DB_USER
               value: "root"
             - name: DB_PASSWORD

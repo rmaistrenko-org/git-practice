@@ -1,12 +1,19 @@
 package user
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
 )
+
+// InitializeUserHandlerWithDB создает Handler с подключением к базе данных
+func InitializeUserHandlerWithDB(db *sql.DB) *Handler {
+	service := NewService(db)
+	return &Handler{Service: service}
+}
 
 // Handler отвечает за обработку HTTP-запросов
 type Handler struct {

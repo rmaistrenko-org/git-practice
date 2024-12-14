@@ -2,24 +2,17 @@ package user
 
 import (
 	"database/sql"
-	"example.com/m/internal/database"
 	"fmt"
 	"strings"
 	"time"
 )
 
 // CreateUser inserts a new user into the database
-func CreateUser(user *User) error {
-	// Check if database is initialized
-	if database.DB == nil {
-		return fmt.Errorf("database is not initialized")
-	}
-
-	// Insert new user and capture the current timestamp for CreatedAt
+func CreateUser(db *sql.DB, user *User) error {
 	query := "INSERT INTO users (name, email, created_at) VALUES (?, ?, ?)"
 	createdAt := time.Now().Format("2006-01-02 15:04:05")
 
-	result, err := database.DB.Exec(query, user.Name, user.Email, createdAt)
+	result, err := db.Exec(query, user.Name, user.Email, createdAt)
 	if err != nil {
 		return err
 	}
@@ -29,7 +22,6 @@ func CreateUser(user *User) error {
 		return err
 	}
 
-	// Update the User struct with the new ID and CreatedAt timestamp
 	user.ID = int(id)
 	user.CreatedAt = createdAt
 
@@ -37,14 +29,9 @@ func CreateUser(user *User) error {
 }
 
 // GetUsers retrieves all users from the database
-func GetUsers() ([]User, error) {
-	// Check if database is initialized
-	if database.DB == nil {
-		return nil, fmt.Errorf("database is not initialized")
-	}
-
+func GetUsers(db *sql.DB) ([]User, error) {
 	query := "SELECT id, name, email, created_at FROM users"
-	rows, err := database.DB.Query(query)
+	rows, err := db.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -64,15 +51,10 @@ func GetUsers() ([]User, error) {
 }
 
 // GetUserByID retrieves a single user by ID
-func GetUserByID(id int) (*User, error) {
-	// Check if database is initialized
-	if database.DB == nil {
-		return nil, fmt.Errorf("database is not initialized")
-	}
-
+func GetUserByID(db *sql.DB, id int) (*User, error) {
 	query := "SELECT id, name, email, created_at FROM users WHERE id = ?"
 	var user User
-	err := database.DB.QueryRow(query, id).Scan(&user.ID, &user.Name, &user.Email, &user.CreatedAt)
+	err := db.QueryRow(query, id).Scan(&user.ID, &user.Name, &user.Email, &user.CreatedAt)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -83,17 +65,10 @@ func GetUserByID(id int) (*User, error) {
 }
 
 // UpdateUser updates an existing user in the database
-func UpdateUser(id int, user *User) error {
-	// Check if database is initialized
-	if database.DB == nil {
-		return fmt.Errorf("database is not initialized")
-	}
-
-	// Create a slice to hold the columns to update
+func UpdateUser(db *sql.DB, id int, user *User) error {
 	var updates []string
 	var args []interface{}
 
-	// Check which fields are provided and build the query dynamically
 	if user.Name != "" {
 		updates = append(updates, "name = ?")
 		args = append(args, user.Name)
@@ -103,36 +78,20 @@ func UpdateUser(id int, user *User) error {
 		args = append(args, user.Email)
 	}
 
-	// If no updates, return an error
 	if len(updates) == 0 {
 		return fmt.Errorf("no fields to update")
 	}
 
-	// Add the user ID to the arguments (it will be used in the WHERE clause)
 	args = append(args, id)
-
-	// Build the final SQL query by joining the fields
 	query := fmt.Sprintf("UPDATE users SET %s WHERE id = ?", strings.Join(updates, ", "))
 
-	// Execute the update query
-	_, err := database.DB.Exec(query, args...)
-	if err != nil {
-		return err
-	}
-
-	// Now fetch the updated user data from the database
-	return database.DB.QueryRow("SELECT id, name, email, created_at FROM users WHERE id = ?", id).
-		Scan(&user.ID, &user.Name, &user.Email, &user.CreatedAt)
+	_, err := db.Exec(query, args...)
+	return err
 }
 
 // DeleteUser deletes a user by ID
-func DeleteUser(id int) error {
-	// Check if database is initialized
-	if database.DB == nil {
-		return fmt.Errorf("database is not initialized")
-	}
-
+func DeleteUser(db *sql.DB, id int) error {
 	query := "DELETE FROM users WHERE id = ?"
-	_, err := database.DB.Exec(query, id)
+	_, err := db.Exec(query, id)
 	return err
 }

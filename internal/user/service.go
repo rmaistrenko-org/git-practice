@@ -15,21 +15,21 @@ func ProvideUserService(db *sql.DB) *Service {
 }
 
 func (s *Service) CreateUser(user *User) error {
-	return CreateUser(user)
+	return CreateUser(s.DB, user)
 }
 
 func (s *Service) GetUsers() ([]User, error) {
-	return GetUsers()
+	return GetUsers(s.DB)
 }
 
 func (s *Service) GetUserByID(id int) (*User, error) {
-	return GetUserByID(id)
+	return GetUserByID(s.DB, id)
 }
 
 func (s *Service) UpdateUser(id int, user *User) error {
-	return UpdateUser(id, user)
+	return UpdateUser(s.DB, id, user)
 }
 
 func (s *Service) DeleteUser(id int) error {
-	return DeleteUser(id)
+	return DeleteUser(s.DB, id)
 }
